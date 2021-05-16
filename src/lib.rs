@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use fancy_regex::Regex;
 use std::fmt;
 
@@ -7,8 +6,14 @@ const OCC_OSI_REGEX: &str = r"^(?=.{16,21}$)(?P<symbol>[\w]{1,6})\s{0,5}(?P<year
 /// Struct representing a complete option contract
 #[derive(Debug, PartialEq)]
 pub struct OptionData {
+    /// ticker symbol
     pub symbol: String,
-    pub expiration_date: NaiveDate,
+    /// 4 digit year -> e.g. 2021
+    expiration_year: i32,
+    /// expiration month 1->12
+    expiration_month: i32,
+    /// expiration day  1->31
+    expiration_day: i32,
     pub strike_price: f64,
     pub contract_type: ContractType,
 }
@@ -29,11 +34,13 @@ impl fmt::Display for ContractType {
     }
 }
 
-
 /// Error type which wraps [fancy_regex::Error]
 #[derive(Debug)]
 pub enum Error {
     NoResult,
+    YearOutOfRange,
+    MonthOutOfRange,
+    DayOutOfRange,
     RegexError(fancy_regex::Error),
 }
 
@@ -46,6 +53,14 @@ impl fmt::Display for Error {
         match self {
             Error::NoResult => write!(f, "No Result for parsing String"),
             Error::RegexError(e) => write!(f, "RegexError: {}", e),
+            Error::YearOutOfRange => write!(f, "Supplied year is out of range and not >2000"),
+            Error::MonthOutOfRange => write!(
+                f,
+                "Supplied month is out of range and not between 1 and 12 "
+            ),
+            Error::DayOutOfRange => {
+                write!(f, "Supplied Year is out of range and not between 1 and 31")
+            }
         }
     }
 }
@@ -70,11 +85,10 @@ impl OptionData {
         let cap = result.unwrap();
 
         Ok(OptionData {
-            expiration_date: NaiveDate::from_ymd(
-                2000 + cap.name("year").unwrap().as_str().parse::<i32>().unwrap(),
-                cap.name("month").unwrap().as_str().parse().unwrap(),
-                cap.name("day").unwrap().as_str().parse().unwrap(),
-            ),
+            expiration_year: 2000 + cap.name("year").unwrap().as_str().parse::<i32>().unwrap(),
+            expiration_month: cap.name("month").unwrap().as_str().parse().unwrap(),
+            expiration_day: cap.name("day").unwrap().as_str().parse().unwrap(),
+
             symbol: cap.name("symbol").unwrap().as_str().parse().unwrap(),
             contract_type: match cap.name("contract").unwrap().as_str() {
                 "P" | "p" => ContractType::Put,
@@ -86,100 +100,76 @@ impl OptionData {
         })
     }
 
-
     /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972]
     pub fn to_osi_string(&self) -> String {
-        format!("{symbol:<6}{date}{contract}{price:0>8}", symbol=self.symbol, date=self.expiration_date.format("%y%m%d"), contract=self.contract_type, price=self.strike_price*1000 as f64).to_string()
+        format!(
+            "{symbol:<6}{year:0>2}{month:0>2}{day:0>2}{contract}{price:0>8}",
+            symbol = self.symbol,
+            day = self.expiration_day,
+            month = self.expiration_month,
+            year = self.expiration_year - 2000,
+            contract = self.contract_type,
+            price = self.strike_price * 1000 as f64
+        )
+        .to_string()
     }
 
     /// serializes [OptionData] to a Schwab compliant string like described here [http://www.schwabcontent.com/symbology/int_eng/key_details.html]
     pub fn to_schwab_string(&self) -> String {
-        format!("{symbol} {date} {price:.2} {contract}", symbol=self.symbol, date=self.expiration_date.format("%m/%d/%Y"), contract=self.contract_type, price=self.strike_price as f64).to_string()
+        format!(
+            "{symbol} {month:0>2}/{day:0>2}/{year:0>4} {price:.2} {contract}",
+            symbol = self.symbol,
+            day = self.expiration_day,
+            month = self.expiration_month,
+            year = self.expiration_year,
+            contract = self.contract_type,
+            price = self.strike_price as f64
+        )
+        .to_string()
     }
 
+    pub fn get_year(&self) -> i32 {
+        self.expiration_year
+    }
+
+    pub fn get_month(&self) -> i32 {
+        self.expiration_month
+    }
+
+    pub fn get_day(&self) -> i32 {
+        self.expiration_day
+    }
+
+    pub fn set_ymd(&self, year: i32, month: i32, day: i32) -> Result<(), Error> {
+        if !year > 2000 {
+            return Err(Error::YearOutOfRange);
+        }
+        if !(month >= 1 && month <= 12) {
+            return Err(Error::MonthOutOfRange);
+        }
+        if !is_day_in_month_and_year(year, month, day) {
+            return Err(Error::DayOutOfRange);
+        }
+        Ok(())
+    }
+}
+
+/// leap year is every 4 years but not every 100 still every 400
+fn is_leap_year(year: i32) -> bool {
+    return (year % 4 == 0 && !(year % 100 == 0)) || year % 400 == 0;
+}
+
+const MONTH_WITH_31_DAYS: [i32; 7] = [1, 3, 5, 7, 8, 10, 12];
+/// checks if the day of month fits the month and year
+fn is_day_in_month_and_year(year: i32, month: i32, day: i32) -> bool {
+    return day > 0
+        && (
+            (month == 2 && 
+                (day <= 28 || day == 29 && is_leap_year(year)))
+            || (month != 2 &&
+                 ( day <= 30 || day == 31 && MONTH_WITH_31_DAYS.contains(&month)))
+        );
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::{ContractType, OptionData};
-    use chrono::NaiveDate;
-
-    #[test]
-    fn osi_well_formated() {
-        let apple_01nov13_call_470 = OptionData {
-            strike_price: 470 as f64,
-            contract_type: ContractType::Call,
-            symbol: "AAPL".to_string(),
-            expiration_date: NaiveDate::from_ymd(2013, 11, 01),
-        };
-
-        assert_eq!(
-            OptionData::parse_osi("AAPL  131101C00470000").unwrap(),
-            apple_01nov13_call_470
-        );
-    }
-
-    #[test]
-    fn osi_symbol_padding_wrong() {
-        let apple_01nov13_call_470 = OptionData {
-            strike_price: 470 as f64,
-            contract_type: ContractType::Call,
-            symbol: "AAPL".to_string(),
-            expiration_date: NaiveDate::from_ymd(2013, 11, 01),
-        };
-
-        assert_eq!(
-            OptionData::parse_osi("AAPL 131101C00470000").unwrap(),
-            apple_01nov13_call_470
-        );
-        assert_eq!(
-            OptionData::parse_osi("AAPL131101C00470000").unwrap(),
-            apple_01nov13_call_470
-        );
-    }
-
-    #[test]
-    fn osi_contract_type_small() {
-        let apple_01nov13_call_470 = OptionData {
-            strike_price: 470 as f64,
-            contract_type: ContractType::Call,
-            symbol: "AAPL".to_string(),
-            expiration_date: NaiveDate::from_ymd(2013, 11, 01),
-        };
-
-        assert_eq!(
-            OptionData::parse_osi("AAPL  131101c00470000").unwrap(),
-            apple_01nov13_call_470
-        );
-    }
-
-    #[test]
-    fn osi_formatting(){
-        let apple_01nov13_call_470 = OptionData {
-            strike_price: 470 as f64,
-            contract_type: ContractType::Call,
-            symbol: "AAPL".to_string(),
-            expiration_date: NaiveDate::from_ymd(2013, 11, 01),
-        };
-
-        assert_eq!(
-            "AAPL  131101C00470000",
-            apple_01nov13_call_470.to_osi_string()
-        );
-    }
-
-    #[test]
-    fn schwab_formatting(){
-        let apple_01nov13_call_470 = OptionData {
-            strike_price: 470 as f64,
-            contract_type: ContractType::Call,
-            symbol: "AAPL".to_string(),
-            expiration_date: NaiveDate::from_ymd(2013, 11, 01),
-        };
-
-        assert_eq!(
-            "AAPL 11/01/2013 470.00 C",
-            apple_01nov13_call_470.to_schwab_string()
-        );
-    }
-}
+mod tests;
