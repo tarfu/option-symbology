@@ -114,6 +114,20 @@ impl OptionData {
         .to_string()
     }
 
+        /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972] but without padding of the symbol to 6 chars
+        pub fn to_osi_string_no_symbol_padding(&self) -> String {
+            format!(
+                "{symbol}{year:0>2}{month:0>2}{day:0>2}{contract}{price:0>8}",
+                symbol = self.symbol,
+                day = self.expiration_day,
+                month = self.expiration_month,
+                year = self.expiration_year - 2000,
+                contract = self.contract_type,
+                price = self.strike_price * 1000 as f64
+            )
+            .to_string()
+        }
+
     /// serializes [OptionData] to a Schwab compliant string like described here [http://www.schwabcontent.com/symbology/int_eng/key_details.html]
     pub fn to_schwab_string(&self) -> String {
         format!(
