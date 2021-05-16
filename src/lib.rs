@@ -4,6 +4,7 @@ use std::fmt;
 
 const OCC_OSI_REGEX: &str = r"^(?=.{16,21}$)(?P<symbol>[\w]{1,6})\s{0,5}(?P<year>\d{2})(?P<month>0\d|1[0-2])(?P<day>0[1-9]|[12]\d|3[01])(?P<contract>C|P|c|p)(?P<price>\d{8})$";
 
+/// Struct representing a complete option contract
 #[derive(Debug, PartialEq)]
 pub struct OptionData {
     pub symbol: String,
@@ -12,12 +13,7 @@ pub struct OptionData {
     pub contract_type: ContractType,
 }
 
-// impl std::cmp::PartialEq for OptionData {
-//     fn eq(&self, other: &Self) -> bool {
-//         return self.symbol == other.symbol && self.expiration_date == other.expiration_date && self.strike_price == other.strike_price && self.contract_type == other.contract_type;
-//     }
-// }
-
+/// Enum if it is a Call or a Put
 #[derive(Debug, PartialEq)]
 pub enum ContractType {
     Call,
@@ -33,6 +29,8 @@ impl fmt::Display for ContractType {
     }
 }
 
+
+/// Error type which wraps [fancy_regex::Error]
 #[derive(Debug)]
 pub enum Error {
     NoResult,
@@ -53,6 +51,7 @@ impl fmt::Display for Error {
 }
 
 impl OptionData {
+    ///parse a string which is OSI compliant to [OptionData]
     pub fn parse_osi(osi: &str) -> Result<OptionData, Error> {
         let re = Regex::new(OCC_OSI_REGEX);
         let re = match re {
@@ -87,10 +86,13 @@ impl OptionData {
         })
     }
 
+
+    /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972]
     pub fn to_osi_string(&self) -> String {
         format!("{symbol:<6}{date}{contract}{price:0>8}", symbol=self.symbol, date=self.expiration_date.format("%y%m%d"), contract=self.contract_type, price=self.strike_price*1000 as f64).to_string()
     }
 
+    /// serializes [OptionData] to a Schwab compliant string like described here [http://www.schwabcontent.com/symbology/int_eng/key_details.html]
     pub fn to_schwab_string(&self) -> String {
         format!("{symbol} {date} {price:.2} {contract}", symbol=self.symbol, date=self.expiration_date.format("%m/%d/%Y"), contract=self.contract_type, price=self.strike_price as f64).to_string()
     }
