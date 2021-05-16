@@ -7,7 +7,7 @@ authors = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
 repository = "https://github.com/tarfu/option-symbology"
 exclude = [".gitignore", ".github"]
 readme = "README.md"
-keywords = ["osi", "options", "schwab", "option", "symbology", "identification", "occ", "oci"]
+keywords = ["osi", "options", "schwab", "occ", "oci"]
 edition = "2018"
 documentation = "https://docs.rs/option-symbology"
 
