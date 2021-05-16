@@ -142,15 +142,15 @@ impl OptionData {
         .to_string()
     }
 
-    pub fn get_year(&self) -> i32 {
+    pub fn get_expiration_year(&self) -> i32 {
         self.expiration_year
     }
 
-    pub fn get_month(&self) -> i32 {
+    pub fn get_expiration_month(&self) -> i32 {
         self.expiration_month
     }
 
-    pub fn get_day(&self) -> i32 {
+    pub fn get_expiration_day(&self) -> i32 {
         self.expiration_day
     }
 
