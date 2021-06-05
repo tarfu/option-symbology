@@ -73,6 +73,25 @@ fn osi_formatting() {
 }
 
 #[test]
+fn parse_ib_activity_statement_trades_symbol(){
+    let apple_01nov13_call_470 = OptionData {
+        strike_price: 470 as f64,
+        contract_type: ContractType::Call,
+        symbol: "AAPL".to_string(),
+        expiration_year: 2013,
+        expiration_month: 11,
+        expiration_day: 1,
+    };
+
+    let apple_01nov13_call_470_parsed = OptionData::parse_ib_activity_statement_trades_symbol("AAPL 01NOV13 470.0 C");
+
+    assert_eq!(
+        apple_01nov13_call_470,
+        apple_01nov13_call_470_parsed.unwrap()
+    );
+}
+
+#[test]
 fn schwab_formatting() {
     let apple_01nov13_call_470 = OptionData {
         strike_price: 470 as f64,

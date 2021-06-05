@@ -15,4 +15,7 @@ documentation = "https://docs.rs/option-symbology"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fancy-regex = "0.5"
+fancy-regex = "0.6.0"
+strum = "0.21.0"
+strum_macros = "0.21"
+

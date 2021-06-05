@@ -1,7 +1,30 @@
 use fancy_regex::Regex;
-use std::fmt;
+
+use strum_macros::{EnumString, Display};
+
+
+use std::{fmt, str::FromStr};
 
 const OCC_OSI_REGEX: &str = r"^(?=.{16,21}$)(?P<symbol>[\w]{1,6})\s{0,5}(?P<year>\d{2})(?P<month>0\d|1[0-2])(?P<day>0[1-9]|[12]\d|3[01])(?P<contract>C|P|c|p)(?P<price>\d{8})$";
+const IB_ACTIVITY_STATEMENT_TRADES: &str = r"^(?P<symbol>[\w]{1,6})\s(?P<day>0[1-9]|[12]\d|3[01])(?P<month>\w{3})(?P<year>\d{2})\s(?P<price>\d*[.]?\d+)\s(?P<contract>C|P|c|p)"; 
+
+#[derive(Debug, Eq, PartialEq, EnumString, Display)]
+enum Month3Letter {
+    JAN = 1,
+    FEB,
+    MAR,
+    APR,
+    MAY,
+    JUN,
+    JUL,
+    AUG,
+    SEP,
+    OCT,
+    NOV,
+    DEC,
+}
+
+
 
 /// Struct representing a complete option contract
 #[derive(Debug, PartialEq)]
@@ -100,6 +123,39 @@ impl OptionData {
         })
     }
 
+    pub fn parse_ib_activity_statement_trades_symbol(osi: &str) -> Result<OptionData, Error> {
+        let re = Regex::new(IB_ACTIVITY_STATEMENT_TRADES);
+        let re = match re {
+            Ok(r) => r,
+            Err(e) => return Err(Error::RegexError(e)),
+        };
+
+        let result = re.captures(osi);
+        let result = match result {
+            Ok(r) => r,
+            Err(e) => return Err(Error::RegexError(e)),
+        };
+        if result.is_none() {
+            return Err(Error::NoResult);
+        }
+        let cap = result.unwrap();
+
+        Ok(OptionData {
+            expiration_year: 2000 + cap.name("year").unwrap().as_str().parse::<i32>().unwrap(),
+            expiration_month: Month3Letter::from_str(cap.name("month").unwrap().as_str()).unwrap() as i32,
+            expiration_day: cap.name("day").unwrap().as_str().parse().unwrap(),
+
+            symbol: cap.name("symbol").unwrap().as_str().parse().unwrap(),
+            contract_type: match cap.name("contract").unwrap().as_str() {
+                "P" | "p" => ContractType::Put,
+                "C" | "c" => ContractType::Call,
+                _ => panic!(),
+            },
+            strike_price: cap.name("price").unwrap().as_str().parse::<f64>().unwrap(),
+        })
+
+    }
+
     /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972]
     pub fn to_osi_string(&self) -> String {
         format!(
@@ -114,19 +170,19 @@ impl OptionData {
         .to_string()
     }
 
-        /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972] but without padding of the symbol to 6 chars
-        pub fn to_osi_string_no_symbol_padding(&self) -> String {
-            format!(
-                "{symbol}{year:0>2}{month:0>2}{day:0>2}{contract}{price:0>8}",
-                symbol = self.symbol,
-                day = self.expiration_day,
-                month = self.expiration_month,
-                year = self.expiration_year - 2000,
-                contract = self.contract_type,
-                price = self.strike_price * 1000 as f64
-            )
-            .to_string()
-        }
+    /// serializes [OptionData] to a OSI compliant string like described here [https://ibkr.info/node/972] but without padding of the symbol to 6 chars
+    pub fn to_osi_string_no_symbol_padding(&self) -> String {
+        format!(
+            "{symbol}{year:0>2}{month:0>2}{day:0>2}{contract}{price:0>8}",
+            symbol = self.symbol,
+            day = self.expiration_day,
+            month = self.expiration_month,
+            year = self.expiration_year - 2000,
+            contract = self.contract_type,
+            price = self.strike_price * 1000 as f64
+        )
+        .to_string()
+    }
 
     /// serializes [OptionData] to a Schwab compliant string like described here [http://www.schwabcontent.com/symbology/int_eng/key_details.html]
     pub fn to_schwab_string(&self) -> String {
