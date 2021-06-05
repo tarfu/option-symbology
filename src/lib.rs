@@ -6,7 +6,7 @@ use strum_macros::{EnumString, Display};
 use std::{fmt, str::FromStr};
 
 const OCC_OSI_REGEX: &str = r"^(?=.{16,21}$)(?P<symbol>[\w]{1,6})\s{0,5}(?P<year>\d{2})(?P<month>0\d|1[0-2])(?P<day>0[1-9]|[12]\d|3[01])(?P<contract>C|P|c|p)(?P<price>\d{8})$";
-const IB_ACTIVITY_STATEMENT_TRADES: &str = r"^(?P<symbol>[\w]{1,6})\s(?P<day>0[1-9]|[12]\d|3[01])(?P<month>\w{3})(?P<year>\d{2})\s(?P<price>\d*[.]?\d+)\s(?P<contract>C|P|c|p)"; 
+const IB_ACTIVITY_STATEMENT_TRADES: &str = r"^(?P<symbol>[\w]{1,6})\s(?P<day>0[1-9]|[12]\d|3[01])(?P<month>\w{3})(?P<year>\d{2})\s(?P<price>\d*[.]?\d+)\s(?P<contract>C|P|c|p)$"; //KO 28MAY21 32.01 C 
 
 #[derive(Debug, Eq, PartialEq, EnumString, Display)]
 enum Month3Letter {
