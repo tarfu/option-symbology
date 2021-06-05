@@ -1,6 +1,6 @@
 [package]
 name = "option-symbology"
-version = "0.1.2"
+version = "0.1.3"
 description = "Parsing of Options identifiers and formatting them."
 license = "MIT"
 authors = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
