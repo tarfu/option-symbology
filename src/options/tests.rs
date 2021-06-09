@@ -1,4 +1,4 @@
-use crate::{is_day_in_month_and_year, is_leap_year, ContractType, OptionData};
+use crate::options::{is_day_in_month_and_year, is_leap_year, ContractType, OptionData};
 
 #[test]
 fn osi_well_formated() {
