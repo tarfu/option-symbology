@@ -64,6 +64,7 @@ pub enum Error {
     YearOutOfRange,
     MonthOutOfRange,
     DayOutOfRange,
+    ChecksumError,
     RegexError(fancy_regex::Error),
 }
 
@@ -83,6 +84,9 @@ impl fmt::Display for Error {
             ),
             Error::DayOutOfRange => {
                 write!(f, "Supplied Year is out of range and not between 1 and 31")
+            },
+            Error::ChecksumError => {
+                write!(f, "Checksum could not be verified")
             }
         }
     }
