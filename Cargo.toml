@@ -1,15 +1,15 @@
 [package]
-name = "option-symbology"
-version = "0.1.3"
+name = "securities-identifiery"
+version = "0.1.0"
 description = "Parsing of Options identifiers and formatting them."
 license = "MIT"
 authors = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
-repository = "https://github.com/tarfu/option-symbology"
+repository = "https://github.com/tarfu/securities-identifiery"
 exclude = [".gitignore", ".github"]
 readme = "README.md"
 keywords = ["osi", "options", "schwab", "occ", "oci"]
 edition = "2018"
-documentation = "https://docs.rs/option-symbology"
+documentation = "https://docs.rs/securities-identifier"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
