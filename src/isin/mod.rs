@@ -5,10 +5,8 @@ use crate::options::Error;
 const ISIN_REGEX: &str =
     r"^(?P<country>[A-Z]{2})(?P<identifier>[A-Z0-9]{9})(?P<checksum>[0-9]{1})$";
 
+#[derive(Debug, PartialEq)]
 pub struct ISIN {
-    pub county_code: String,
-    pub identifier: String,
-    pub checksum: u8,
     isin: String,
 }
 
@@ -17,35 +15,41 @@ impl ISIN {
         let re = Regex::new(ISIN_REGEX);
         let re = match re {
             Ok(r) => r,
-            Err(e) => return Err(Error::RegexError(e)),
+            Err(e) => return Err(Error::RegexError(e.to_string())),
         };
 
         let result = re.captures(isin);
         let result = match result {
             Ok(r) => r,
-            Err(e) => return Err(Error::RegexError(e)),
+            Err(e) => return Err(Error::RegexError(e.to_string())),
         };
         if result.is_none() {
             return Err(Error::NoResult);
         }
 
-        let cap = result.unwrap();
-
         if verify_isin(isin) {
             Ok(ISIN {
-                county_code: cap.name("country").unwrap().as_str().parse().unwrap(),
-                identifier: cap.name("identifier").unwrap().as_str().parse().unwrap(),
-                checksum: cap
-                    .name("checksum")
-                    .unwrap()
-                    .as_str()
-                    .parse::<u8>()
-                    .unwrap() as u8,
                 isin: isin.to_string(),
             })
         } else {
             Err(Error::ChecksumError)
         }
+    }
+
+    pub fn get_county_code(&self) -> &str {
+        &self.isin[0..2]
+    }
+
+    pub fn get_identifier(&self) -> &str {
+        &self.isin[2..11]
+    }
+
+    pub fn get_checksum(&self) -> &str {
+        &self.isin[11..]
+    }
+
+    pub fn get_isin(&self) -> &str {
+        &self.isin
     }
 }
 
@@ -56,9 +60,11 @@ fn verify_isin(isin: &str) -> bool {
     last_char == checksum_char
 }
 
+/// As described on:
+/// https://en.wikipedia.org/wiki/International_Securities_Identification_Number
+/// https://en.wikipedia.org/wiki/Luhn_algorithm
 fn compute_checksum(isin: &str) -> u8 {
     let digits = replace_chars_to_numbers(isin);
-    println!("{:?}", digits);
     let sum_odd: i32 = digits
         .iter()
         .rev()
@@ -66,24 +72,14 @@ fn compute_checksum(isin: &str) -> u8 {
         .step_by(2)
         .map(|f| (*f as i32) * 2)
         .flat_map(|f| if f > 9 { vec![f / 10, f % 10] } else { vec![f] })
-        .map(|f| {
-            print!("{}, ", f);
-            f
-        })
         .sum();
-    println!("");
     let sum_even: i32 = digits
         .iter()
         .rev()
         .skip(2)
         .step_by(2)
         .map(|f| (*f as i32))
-        .map(|f| {
-            print!("{}, ", f);
-            f
-        })
         .sum();
-    println!("");
 
     let checksum = sum_even + sum_odd;
 
@@ -128,5 +124,19 @@ mod tests {
         assert!(!verify_isin("SU5941981045")); // Microsoft (two chars transposed)
         assert!(!verify_isin("US3825P95089")); // Google (two chars transposed)
         assert!(!verify_isin("US0378313005")); // Apple (two chars transposed)
+    }
+
+    #[test]
+    fn parse_isin() {
+        let parsed = ISIN::parse_isin("US0378331005").unwrap();
+        assert_eq!("US", parsed.get_county_code());
+        assert_eq!("037833100", parsed.get_identifier());
+        assert_eq!("5", parsed.get_checksum());
+    }
+
+    #[test]
+    fn parse_isin_errors() {
+        assert_eq!(ISIN::parse_isin("US0378331000"), Err(Error::ChecksumError)); // checksum wrong
+        assert_eq!(ISIN::parse_isin("US037833100"), Err(Error::NoResult)) // no checksum
     }
 }

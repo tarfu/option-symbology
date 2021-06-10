@@ -73,7 +73,7 @@ fn osi_formatting() {
 }
 
 #[test]
-fn parse_ib_activity_statement_trades_symbol(){
+fn parse_ib_activity_statement_trades_symbol() {
     let apple_01nov13_call_470 = OptionData {
         strike_price: 470 as f64,
         contract_type: ContractType::Call,
@@ -83,7 +83,8 @@ fn parse_ib_activity_statement_trades_symbol(){
         expiration_day: 1,
     };
 
-    let apple_01nov13_call_470_parsed = OptionData::parse_ib_activity_statement_trades_symbol("AAPL 01NOV13 470.0 C");
+    let apple_01nov13_call_470_parsed =
+        OptionData::parse_ib_activity_statement_trades_symbol("AAPL 01NOV13 470.0 C");
 
     assert_eq!(
         apple_01nov13_call_470,

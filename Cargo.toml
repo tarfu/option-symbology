@@ -1,6 +1,6 @@
 [package]
 name = "securities-identifiery"
-version = "0.1.0"
+version = "0.1.1"
 description = "Parsing of Options identifiers and formatting them."
 license = "MIT"
 authors = ["Tobias Breitwieser <tobias@breitwieser.biz>"]
@@ -12,7 +12,6 @@ edition = "2018"
 documentation = "https://docs.rs/securities-identifier"
 
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 fancy-regex = "0.6.0"
